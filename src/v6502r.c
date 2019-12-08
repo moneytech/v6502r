@@ -34,6 +34,7 @@ static uint8_t test_prog[] = {
 };
 
 static void app_init(void) {
+    util_init();
     gfx_init();
     ui_init();
     chipvis_init();
@@ -41,7 +42,7 @@ static void app_init(void) {
     trace_init();
     sim_init_or_reset();
     sim_write(0x0000, sizeof(test_prog), test_prog);
-    sim_start(0x0000);
+    sim_start();
 }
 
 static void app_frame(void) {
@@ -57,9 +58,12 @@ static void app_frame(void) {
 
 static void app_input(const sapp_event* ev) {
     if (ui_input(ev)) {
+        app.input.mouse.x = 0;
+        app.input.mouse.y = 0;
+        app.input.dragging = false;
         return;
     }
-    float w = (float)ev->framebuffer_width * app.chipvis.scale;
+    float w = (float) ev->framebuffer_width * app.chipvis.scale;
     float h = (float) ev->framebuffer_height * app.chipvis.scale * app.chipvis.aspect;
     switch (ev->type) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
@@ -119,5 +123,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .width = 900,
         .height = 700,
         .window_title = "Visual6502 Remix",
+        .enable_clipboard = true,
+        .clipboard_size = 16*1024
     };
 }

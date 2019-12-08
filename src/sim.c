@@ -24,10 +24,7 @@ void sim_shutdown(void) {
     }
 }
 
-void sim_start(uint16_t start_addr) {
-    // patch reset vector and run through the 9-cycle reset sequence,
-    // but stop before the first post-reset instruction byte is set
-    sim_w16(0xFFFC, start_addr);
+void sim_start(void) {
     sim_step(17);
 }
 
@@ -94,6 +91,12 @@ void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr) {
     }
 }
 
+void sim_clear(uint16_t addr, uint16_t num_bytes) {
+    for (uint16_t i = 0; i < num_bytes; i++) {
+        memory[(addr+i)&0xFFFF] = 0;
+    }
+}
+
 uint8_t sim_get_a(void) {
     return readA(p6502_state);
 }
@@ -150,6 +153,38 @@ void sim_set_cycle(uint32_t c) {
     cycle = c - 1;
 }
 
+void sim_set_rdy(bool high) {
+    writeRDY(p6502_state, high ? 1 : 0);
+}
+
+bool sim_get_rdy(void) {
+    return 0 != readRDY(p6502_state);
+}
+
+void sim_set_irq(bool high) {
+    writeIRQ(p6502_state, high ? 1 : 0);
+}
+
+bool sim_get_irq(void) {
+    return 0 != readIRQ(p6502_state);
+}
+
+void sim_set_nmi(bool high) {
+    writeNMI(p6502_state, high ? 1 : 0);
+}
+
+bool sim_get_nmi(void) {
+    return 0 != readNMI(p6502_state);
+}
+
+void sim_set_res(bool high) {
+    writeRES(p6502_state, high ? 1 : 0);
+}
+
+bool sim_get_res(void) {
+    return 0 != readRES(p6502_state);
+}
+
 bool sim_read_node_values(uint8_t* ptr, int max_bytes) {
     return 0 != p6502_read_node_values(p6502_state, ptr, max_bytes);
 }
@@ -165,3 +200,4 @@ void sim_write_node_values(const uint8_t* ptr, int max_bytes) {
 void sim_write_transistor_on(const uint8_t* ptr, int max_bytes) {
     p6502_write_transistor_on(p6502_state, ptr, max_bytes);
 }
+

@@ -8,6 +8,10 @@
 #pragma clang diagnostic ignored "-Wsign-compare"
 #pragma clang diagnostic ignored "-Wreorder"
 #pragma clang diagnostic ignored "-Wunused-variable"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wreorder"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
 #include "TextEditor.h"
@@ -767,7 +771,7 @@ void TextEditor::HandleKeyboardInputs()
 			EnterCharacter('\n', false);
 		else if (!IsReadOnly() && !ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
 			EnterCharacter('\t', shift);
-        }
+		}
 
 		if (!IsReadOnly() && !io.InputQueueCharacters.empty())
 		{
@@ -1871,15 +1875,16 @@ void TextEditor::Backspace()
 			auto& line = mLines[mState.mCursorPosition.mLine];
 			auto cindex = GetCharacterIndex(pos) - 1;
 			auto cend = cindex + 1;
-			while (cindex > 0 && IsUTFSequence(line[cindex].mChar))
+			while (cindex > 0 && IsUTFSequence(line[cindex].mChar)) {
 				--cindex;
+			}
 
 			//if (cindex > 0 && UTF8CharLength(line[cindex].mChar) > 1)
 			//	--cindex;
 
 			u.mRemovedStart = u.mRemovedEnd = GetActualCursorCoordinates();
 			--u.mRemovedStart.mColumn;
-			--mState.mCursorPosition.mColumn;
+            mState.mCursorPosition.mColumn = GetCharacterColumn(mState.mCursorPosition.mLine, cindex);
 
 			while (cindex < line.size() && cend-- > cindex)
 			{
@@ -2349,7 +2354,7 @@ void TextEditor::ColorizeInternal()
 							commentStartIndex = currentIndex;
 						}
 
-						inComment = inComment = (commentStartLine < currentLine || (commentStartLine == currentLine && commentStartIndex <= currentIndex));
+						inComment = (commentStartLine < currentLine || (commentStartLine == currentLine && commentStartIndex <= currentIndex));
 
 						line[currentIndex].mMultiLineComment = inComment;
 						line[currentIndex].mComment = withinSingleLineComment;

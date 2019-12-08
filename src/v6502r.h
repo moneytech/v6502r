@@ -25,6 +25,8 @@ extern "C" {
 #define MAX_TRACE_ITEMS (256)
 #define TRACE_FLIPBIT_CLK0 (1<<0)
 #define TRACE_FLIPBIT_OP (1<<1)
+#define MAX_BINARY_SIZE ((1<<16)+2)
+#define MAX_LINKURL_SIZE (128)
 
 typedef struct {
     float x, y, z, w;
@@ -90,7 +92,19 @@ typedef struct {
         bool cpu_controls_open;
         bool tracelog_open;
         bool asm_open;
+        bool listing_open;
+        bool help_asm_open;
+        bool help_opcodes_open;
+        bool help_about_open;
         bool tracelog_scroll_to_end;
+        bool open_source_hovered;
+        bool save_source_hovered;
+        bool save_binary_hovered;
+        bool save_listing_hovered;
+        bool cut_hovered;
+        bool copy_hovered;
+        bool link_hovered;
+        char link_url[MAX_LINKURL_SIZE];
     } ui;
     struct {
         bool hovered;               // true if mouse is currently hovering a UI trace item
@@ -102,6 +116,10 @@ typedef struct {
         uint32_t tail;
         trace_item_t items[MAX_TRACE_ITEMS];
     } trace;
+    struct {
+        uint32_t num_bytes;
+        uint8_t buf[MAX_BINARY_SIZE];
+    } binary;
 } app_state_t;
 
 extern app_state_t app;
@@ -116,9 +134,18 @@ void ui_shutdown(void);
 void ui_frame(void);
 void ui_draw(void);
 bool ui_input(const sapp_event* event);
+
 void ui_asm_init(void);
 void ui_asm_discard(void);
 void ui_asm_draw(void);
+void ui_asm_undo(void);
+void ui_asm_redo(void);
+void ui_asm_cut(void);
+void ui_asm_copy(void);
+void ui_asm_paste(void);
+void ui_asm_assemble(void);
+const char* ui_asm_source(void);
+void ui_asm_put_source(const char* name, const uint8_t* bytes, int num_bytes);
 
 void chipvis_init(void);
 void chipvis_draw(void);
@@ -126,7 +153,7 @@ void chipvis_shutdown(void);
 
 void sim_init_or_reset(void);
 void sim_shutdown(void);
-void sim_start(uint16_t start_addr);
+void sim_start(void);
 void sim_frame(void);
 void sim_pause(bool paused);
 bool sim_paused(void);
@@ -137,6 +164,7 @@ void sim_w8(uint16_t addr, uint8_t val);
 uint8_t sim_r8(uint16_t addr);
 void sim_w16(uint16_t addr, uint16_t val);
 uint16_t sim_r16(uint16_t addr);
+void sim_clear(uint16_t addr, uint16_t num_bytes);
 void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
 uint32_t sim_get_cycle(void);
 void sim_set_cycle(uint32_t c);
@@ -152,6 +180,14 @@ bool sim_get_rw(void);
 bool sim_get_sync(void);
 uint16_t sim_get_addr(void);
 uint8_t sim_get_data(void);
+void sim_set_rdy(bool high);
+void sim_set_irq(bool high);
+void sim_set_nmi(bool high);
+void sim_set_res(bool high);
+bool sim_get_irq(void);
+bool sim_get_nmi(void);
+bool sim_get_res(void);
+bool sim_get_rdy(void);
 bool sim_read_node_values(uint8_t* ptr, int max_bytes);
 bool sim_read_transistor_on(uint8_t* ptr, int max_bytes);
 void sim_write_node_values(const uint8_t* ptr, int max_bytes);
@@ -180,6 +216,7 @@ bool trace_get_sync(uint32_t index);
 bool trace_get_irq(uint32_t index);
 bool trace_get_nmi(uint32_t index);
 bool trace_get_res(uint32_t index);
+bool trace_get_rdy(uint32_t index);
 uint16_t trace_get_addr(uint32_t index);
 uint8_t trace_get_data(uint32_t index);
 
@@ -187,7 +224,40 @@ void pick_init(void);
 void pick_frame(void);
 pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, float2_t scale);
 
+typedef struct {
+    const char* filename;
+    int line_nr;                // 1-based!
+    bool warning;               // true: warning, false: error
+    const char* msg;
+} asm_error_t;
+
+typedef struct {
+    bool errors;
+    uint16_t addr;
+    uint16_t len;
+    const uint8_t* bytes;
+} asm_result_t;
+
+void asm_init(void);
+void asm_source_open(void);
+void asm_source_write(const char* src, uint32_t tab_width);
+void asm_source_close(void);
+asm_result_t asm_assemble(void);
+int asm_num_errors(void);
+const asm_error_t* asm_error(int index);
+const char* asm_stderr(void);
+const char* asm_listing(void);
+const char* asm_source(void);
+
+void util_init(void);
 const char* util_opcode_to_str(uint8_t op);
+void util_html5_download_string(const char* filename, const char* content);
+void util_html5_download_binary(const char* filename, const uint8_t* bytes, uint32_t num_bytes);
+void util_html5_load(void);
+void util_html5_open_link(const char* url);
+void util_html5_cursor_to_pointer(void);
+void util_html5_cursor_to_default(void);
+bool util_is_osx(void);
 
 #ifdef __cplusplus
 } // extern "C"
